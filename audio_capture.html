@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capture Audio</title>
+</head>
+<body>
+
+    <h1>Application de Capture Audio</h1>
+    <button id="startButton">Démarrer la capture audio</button>
+    <p id="status">Statut : En attente de capture...</p>
+
+    <script>
+        async function startAudioCapture() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        document.getElementById("status").textContent = "Statut : Audio capturé avec succès !";
+        console.log("Audio capturé avec succès", stream);
+        return stream;
+    } catch (err) {
+        console.error("Erreur lors de la capture audio :", err);
+        document.getElementById("status").textContent = `Erreur : ${err.message}`;
+    }
+}
+
+        // Associer le bouton à la fonction de capture
+        document.getElementById("startButton").addEventListener("click", startAudioCapture);
+    </script>
+
+</body>
+</html>
