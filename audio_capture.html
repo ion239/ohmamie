@@ -13,15 +13,28 @@
 
     <script>
         let peerConnection;
-        const signalingServerURL = "wss://ohmamie.glitch.me"; // Remplace avec l'URL de ton serveur de signalement WebSocket
+        const signalingServerURL = "wss://ohmamie.glitch.me"; // URL de Glitch
+        const socket = new WebSocket(signalingServerURL);
+
+        socket.onopen = () => {
+            console.log("Connecté au serveur de signalement");
+        };
+
+        socket.onmessage = (message) => {
+            const data = JSON.parse(message.data);
+
+            if (data.type === "offer") {
+                peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                createAnswer();
+            } else if (data.type === "candidate") {
+                peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+            }
+        };
 
         async function startAudioCapture() {
             try {
-                // Demander l'accès au microphone
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 document.getElementById("status").textContent = "Statut : Audio capturé et en cours de transmission.";
-
-                // Initialiser WebRTC et ajouter le flux audio
                 initializeWebRTC(stream);
             } catch (err) {
                 console.error("Erreur lors de la capture audio :", err);
@@ -30,47 +43,29 @@
         }
 
         function initializeWebRTC(stream) {
-            // Configurer une connexion WebRTC
             peerConnection = new RTCPeerConnection();
 
-            // Ajouter le flux audio capturé à la connexion
             stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
 
-            // Envoyer les offres et réponses WebRTC via le serveur de signalement
             peerConnection.onicecandidate = (event) => {
                 if (event.candidate) {
-                    sendToSignalingServer({
-                        type: "candidate",
-                        candidate: event.candidate
-                    });
+                    socket.send(JSON.stringify({ type: "candidate", candidate: event.candidate }));
                 }
             };
 
-            // Créer une offre WebRTC
             peerConnection.createOffer().then((offer) => {
                 peerConnection.setLocalDescription(offer);
-                sendToSignalingServer({ type: "offer", offer: offer });
+                socket.send(JSON.stringify({ type: "offer", offer: offer }));
             });
         }
 
-        function sendToSignalingServer(message) {
-            // Connecte-toi au serveur WebSocket de signalement
-            const socket = new WebSocket(signalingServerURL);
-            socket.onopen = () => {
-                socket.send(JSON.stringify(message));
-            };
-            socket.onmessage = (message) => {
-                const data = JSON.parse(message.data);
-
-                if (data.type === "answer") {
-                    peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-                } else if (data.type === "candidate") {
-                    peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-                }
-            };
+        function createAnswer() {
+            peerConnection.createAnswer().then((answer) => {
+                peerConnection.setLocalDescription(answer);
+                socket.send(JSON.stringify({ type: "answer", answer: answer }));
+            });
         }
 
-        // Associer le bouton à la fonction de capture
         document.getElementById("startButton").addEventListener("click", startAudioCapture);
     </script>
 
