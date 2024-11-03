@@ -21,27 +21,34 @@
         };
 
 socket.onmessage = async (message) => {
+    // Vérifie si le message est un objet Blob et tente de le convertir
     if (message.data instanceof Blob) {
-        message.data = await message.data.text();
-    }
+        console.log("Message reçu en Blob :", message.data);
 
-    // Filtrer les messages qui ne semblent pas être du JSON
-    if (message.data.startsWith("{") || message.data.startsWith("[")) {
-        try {
-            const data = JSON.parse(message.data);
+        // Convertir le Blob en texte et loguer le contenu exact
+        const textContent = await message.data.text();
+        console.log("Contenu du Blob après conversion en texte :", textContent);
 
-            if (data.type === "offer") {
-                peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-                createAnswer();
-            } else if (data.type === "candidate") {
-                peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+        // Vérifie si le message commence par { ou [ avant de tenter JSON.parse
+        if (textContent.startsWith("{") || textContent.startsWith("[")) {
+            try {
+                const data = JSON.parse(textContent);
+
+                if (data.type === "offer") {
+                    peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                    createAnswer();
+                } else if (data.type === "candidate") {
+                    peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                }
+            } catch (error) {
+                console.error("Erreur de parsing JSON :", error);
+                console.log("Message reçu non JSON ou mal formé :", textContent);
             }
-        } catch (error) {
-            console.error("Erreur de parsing JSON :", error);
-            console.log("Message reçu non JSON ou mal formé :", message.data);
+        } else {
+            console.log("Message ignoré car non JSON :", textContent);
         }
     } else {
-        console.log("Message ignoré car non JSON :", message.data);
+        console.log("Message reçu non-Blob :", message.data);
     }
 };
 
