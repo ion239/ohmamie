@@ -23,21 +23,14 @@
 socket.onmessage = async (message) => {
     let textContent;
 
-    // Vérifie si le message est un objet Blob et tente de le convertir
     if (message.data instanceof Blob) {
-        console.log("Message reçu en Blob :", message.data);
-
-        // Convertir le Blob en texte et stocker le contenu dans une variable
         textContent = await message.data.text();
     } else {
-        // Si le message n'est pas un Blob, on le considère déjà comme du texte
         textContent = message.data;
     }
 
-    // Affiche le contenu exact du message après conversion
     console.log("Contenu du message après conversion en texte :", textContent);
 
-    // Vérifie si le message est potentiellement en JSON
     if (typeof textContent === "string" && (textContent.startsWith("{") || textContent.startsWith("["))) {
         try {
             const data = JSON.parse(textContent);
