@@ -21,34 +21,39 @@
         };
 
 socket.onmessage = async (message) => {
+    let textContent;
+
     // Vérifie si le message est un objet Blob et tente de le convertir
     if (message.data instanceof Blob) {
         console.log("Message reçu en Blob :", message.data);
 
-        // Convertir le Blob en texte et loguer le contenu exact
-        const textContent = await message.data.text();
-        console.log("Contenu du Blob après conversion en texte :", textContent);
+        // Convertir le Blob en texte et stocker le contenu dans une variable
+        textContent = await message.data.text();
+    } else {
+        // Si le message n'est pas un Blob, on le considère déjà comme du texte
+        textContent = message.data;
+    }
 
-        // Vérifie si le message commence par { ou [ avant de tenter JSON.parse
-        if (textContent.startsWith("{") || textContent.startsWith("[")) {
-            try {
-                const data = JSON.parse(textContent);
+    // Affiche le contenu exact du message après conversion
+    console.log("Contenu du message après conversion en texte :", textContent);
 
-                if (data.type === "offer") {
-                    peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-                    createAnswer();
-                } else if (data.type === "candidate") {
-                    peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-                }
-            } catch (error) {
-                console.error("Erreur de parsing JSON :", error);
-                console.log("Message reçu non JSON ou mal formé :", textContent);
+    // Vérifie si le message est potentiellement en JSON
+    if (typeof textContent === "string" && (textContent.startsWith("{") || textContent.startsWith("["))) {
+        try {
+            const data = JSON.parse(textContent);
+
+            if (data.type === "offer") {
+                peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                createAnswer();
+            } else if (data.type === "candidate") {
+                peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
             }
-        } else {
-            console.log("Message ignoré car non JSON :", textContent);
+        } catch (error) {
+            console.error("Erreur de parsing JSON :", error);
+            console.log("Message reçu non JSON ou mal formé :", textContent);
         }
     } else {
-        console.log("Message reçu non-Blob :", message.data);
+        console.log("Message ignoré car non JSON :", textContent);
     }
 };
 
