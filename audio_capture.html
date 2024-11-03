@@ -21,34 +21,29 @@
         };
 
 socket.onmessage = async (message) => {
-    // Vérifie si le message est un objet Blob
     if (message.data instanceof Blob) {
-        console.log("Message reçu en Blob :", message.data);
-
-        // Convertir le Blob en texte
         message.data = await message.data.text();
     }
 
-    // Afficher le type et la longueur du message après conversion
-    console.log("Type de message après conversion :", typeof message.data);
-    console.log("Longueur du message après conversion :", message.data.length);
-    console.log("Message brut reçu après conversion :", message.data); // Affiche le message exact reçu
+    // Filtrer les messages qui ne semblent pas être du JSON
+    if (message.data.startsWith("{") || message.data.startsWith("[")) {
+        try {
+            const data = JSON.parse(message.data);
 
-    try {
-        const data = JSON.parse(message.data);
-
-        if (data.type === "offer") {
-            peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-            createAnswer();
-        } else if (data.type === "candidate") {
-            peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+            if (data.type === "offer") {
+                peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                createAnswer();
+            } else if (data.type === "candidate") {
+                peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+            }
+        } catch (error) {
+            console.error("Erreur de parsing JSON :", error);
+            console.log("Message reçu non JSON ou mal formé :", message.data);
         }
-    } catch (error) {
-        console.error("Erreur de parsing JSON :", error);
-        console.log("Message reçu non JSON ou mal formé :", message.data);
+    } else {
+        console.log("Message ignoré car non JSON :", message.data);
     }
 };
-
 
 
         async function startAudioCapture() {
