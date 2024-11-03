@@ -20,7 +20,9 @@
             console.log("Connecté au serveur de signalement");
         };
 
-        socket.onmessage = (message) => {
+socket.onmessage = (message) => {
+    console.log("Message brut reçu :", message.data); // Affiche le message brut
+
     try {
         const data = JSON.parse(message.data);
 
@@ -32,7 +34,7 @@
         }
     } catch (error) {
         console.error("Erreur de parsing JSON :", error);
-        console.log("Message reçu non JSON :", message.data);
+        console.log("Message reçu non JSON ou mal formé :", message.data);
     }
 };
 
