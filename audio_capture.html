@@ -29,7 +29,10 @@ socket.onmessage = async (message) => {
         message.data = await message.data.text();
     }
 
-    console.log("Message brut reçu après conversion :", message.data); // Log pour afficher le contenu exact
+    // Afficher le type et la longueur du message après conversion
+    console.log("Type de message après conversion :", typeof message.data);
+    console.log("Longueur du message après conversion :", message.data.length);
+    console.log("Message brut reçu après conversion :", message.data); // Affiche le message exact reçu
 
     try {
         const data = JSON.parse(message.data);
@@ -45,7 +48,6 @@ socket.onmessage = async (message) => {
         console.log("Message reçu non JSON ou mal formé :", message.data);
     }
 };
-
 
 
 
