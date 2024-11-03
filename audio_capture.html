@@ -21,15 +21,21 @@
         };
 
         socket.onmessage = (message) => {
-            const data = JSON.parse(message.data);
+    try {
+        const data = JSON.parse(message.data);
 
-            if (data.type === "offer") {
-                peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-                createAnswer();
-            } else if (data.type === "candidate") {
-                peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-            }
-        };
+        if (data.type === "offer") {
+            peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+            createAnswer();
+        } else if (data.type === "candidate") {
+            peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+        }
+    } catch (error) {
+        console.error("Erreur de parsing JSON :", error);
+        console.log("Message reçu non JSON :", message.data);
+    }
+};
+
 
         async function startAudioCapture() {
             try {
