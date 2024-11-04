@@ -83,9 +83,12 @@ socket.onmessage = async (message) => {
 
     const audioElement = document.createElement("audio");
     audioElement.srcObject = event.streams[0];
-    audioElement.controls = true;  // Afficher les contrôles audio
+    audioElement.controls = true;
 
+    // Désactiver le mode muet sur chaque piste audio
     event.streams[0].getAudioTracks().forEach((track, index) => {
+        track.enabled = true;
+        track.muted = false;  // Désactive le mode muet
         console.log(`Audio Track ${index + 1} - Enabled: ${track.enabled}, Muted: ${track.muted}, ReadyState: ${track.readyState}`);
     });
 
@@ -99,7 +102,6 @@ socket.onmessage = async (message) => {
     document.body.appendChild(playButton);
     document.body.appendChild(audioElement);
 };
-
 
     peerConnection.createOffer().then((offer) => {
         peerConnection.setLocalDescription(offer);
