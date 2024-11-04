@@ -8,110 +8,104 @@
 <body>
 
     <h1>Application de Capture Audio</h1>
-    <button id="startButton">Démarrer la capture et la transmission audio</button>
+    <button id="startSessionButton">Démarrer la session</button>
     <p id="status">Statut : En attente de capture...</p>
 
     <script>
         let peerConnection;
-        const signalingServerURL = "wss://ohmamie.glitch.me"; // URL de Glitch
+        const signalingServerURL = "wss://nom-de-ton-projet.glitch.me"; // URL de Glitch
         const socket = new WebSocket(signalingServerURL);
 
         socket.onopen = () => {
             console.log("Connecté au serveur de signalement");
         };
 
-socket.onmessage = async (message) => {
-    let textContent;
+        socket.onmessage = async (message) => {
+            let textContent;
 
-    if (message.data instanceof Blob) {
-        textContent = await message.data.text();
-    } else {
-        textContent = message.data;
-    }
-
-    console.log("Contenu du message après conversion en texte :", textContent);
-
-    if (typeof textContent === "string" && (textContent.startsWith("{") || textContent.startsWith("["))) {
-        try {
-            const data = JSON.parse(textContent);
-
-            if (data.type === "offer") {
-                peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-                createAnswer();
-            } else if (data.type === "candidate") {
-                peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+            if (message.data instanceof Blob) {
+                textContent = await message.data.text();
+            } else {
+                textContent = message.data;
             }
-        } catch (error) {
-            console.error("Erreur de parsing JSON :", error);
-            console.log("Message reçu non JSON ou mal formé :", textContent);
+
+            console.log("Contenu du message après conversion en texte :", textContent);
+
+            if (typeof textContent === "string" && (textContent.startsWith("{") || textContent.startsWith("["))) {
+                try {
+                    const data = JSON.parse(textContent);
+
+                    if (data.type === "offer") {
+                        peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                        createAnswer();
+                    } else if (data.type === "candidate") {
+                        peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                    }
+                } catch (error) {
+                    console.error("Erreur de parsing JSON :", error);
+                    console.log("Message reçu non JSON ou mal formé :", textContent);
+                }
+            } else {
+                console.log("Message ignoré car non JSON :", textContent);
+            }
+        };
+
+        async function startAudioCapture() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                document.getElementById("status").textContent = "Statut : Audio capturé et en cours de transmission.";
+                console.log("Flux audio capturé :", stream);
+
+                initializeWebRTC(stream);
+            } catch (err) {
+                console.error("Erreur lors de la capture audio :", err);
+                document.getElementById("status").textContent = "Erreur : Impossible de capturer l'audio.";
+            }
         }
-    } else {
-        console.log("Message ignoré car non JSON :", textContent);
-    }
-};
-
-
-     async function startAudioCapture() {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        document.getElementById("status").textContent = "Statut : Audio capturé et en cours de transmission.";
-        console.log("Flux audio capturé :", stream);
-
-        initializeWebRTC(stream);
-    } catch (err) {
-        console.error("Erreur lors de la capture audio :", err);
-        document.getElementById("status").textContent = "Erreur : Impossible de capturer l'audio.";
-    }
-}
-
 
         function initializeWebRTC(stream) {
-    peerConnection = new RTCPeerConnection();
+            peerConnection = new RTCPeerConnection();
 
-    // Ajoute chaque piste audio du flux à la connexion WebRTC
-    stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+            // Ajoute chaque piste audio du flux à la connexion WebRTC
+            stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
 
-    peerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-            socket.send(JSON.stringify({ type: "candidate", candidate: event.candidate }));
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    socket.send(JSON.stringify({ type: "candidate", candidate: event.candidate }));
+                }
+            };
+
+            peerConnection.ontrack = (event) => {
+                console.log("Piste reçue :", event.streams[0]);
+
+                const audioElement = document.createElement("audio");
+                audioElement.srcObject = event.streams[0];
+                audioElement.controls = true;
+                audioElement.muted = false; // Assurer que l'élément audio n'est pas muet
+                audioElement.autoplay = true; // Démarrer la lecture automatiquement
+
+                event.streams[0].getAudioTracks().forEach((track, index) => {
+                    track.enabled = true;
+                    console.log(`Audio Track ${index + 1} - Enabled: ${track.enabled}, Muted: ${track.muted}, ReadyState: ${track.readyState}`);
+                });
+
+                const playButton = document.createElement("button");
+                playButton.textContent = "Démarrer l'audio";
+                playButton.onclick = () => {
+                    audioElement.muted = false;  // Forcer l'élément audio à ne pas être muet
+                    audioElement.play(); // Démarrer la lecture
+                    console.log("Lecture audio démarrée");
+                };
+
+                document.body.appendChild(playButton);
+                document.body.appendChild(audioElement);
+            };
+
+            peerConnection.createOffer().then((offer) => {
+                peerConnection.setLocalDescription(offer);
+                socket.send(JSON.stringify({ type: "offer", offer: offer }));
+            });
         }
-    };
-
-    // Écouter l'arrivée des pistes sur le récepteur
-    peerConnection.ontrack = (event) => {
-    console.log("Piste reçue :", event.streams[0]);
-
-    const audioElement = document.createElement("audio");
-    audioElement.srcObject = event.streams[0];
-    audioElement.controls = true;
-    audioElement.muted = false; // Assurer que l'élément audio n'est pas muet
-    audioElement.autoplay = true; // Démarrer la lecture automatiquement
-
-    // Désactiver le mode muet sur chaque piste audio reçue
-    event.streams[0].getAudioTracks().forEach((track, index) => {
-        track.enabled = true;
-        console.log(`Audio Track ${index + 1} - Enabled: ${track.enabled}, Muted: ${track.muted}, ReadyState: ${track.readyState}`);
-    });
-
-    // Ajouter le bouton de lecture manuelle
-    const playButton = document.createElement("button");
-    playButton.textContent = "Démarrer l'audio";
-    playButton.onclick = () => {
-        audioElement.muted = false;  // Forcer l'élément audio à ne pas être muet
-        audioElement.play(); // Démarrer la lecture
-        console.log("Lecture audio démarrée");
-    };
-
-    document.body.appendChild(playButton);
-    document.body.appendChild(audioElement);
-};
-
-    peerConnection.createOffer().then((offer) => {
-        peerConnection.setLocalDescription(offer);
-        socket.send(JSON.stringify({ type: "offer", offer: offer }));
-    });
-}
-
 
         function createAnswer() {
             peerConnection.createAnswer().then((answer) => {
@@ -120,9 +114,12 @@ socket.onmessage = async (message) => {
             });
         }
 
-        document.getElementById("startButton").addEventListener("click", startAudioCapture);
+        // Bouton pour lancer la session de capture audio
+        document.getElementById("startSessionButton").onclick = async () => {
+            await startAudioCapture();
+            document.getElementById("startSessionButton").remove();  // Supprime le bouton après interaction
+        };
     </script>
 
 </body>
 </html>
-
