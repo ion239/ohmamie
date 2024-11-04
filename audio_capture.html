@@ -83,12 +83,10 @@ socket.onmessage = async (message) => {
 
     const audioElement = document.createElement("audio");
     audioElement.srcObject = event.streams[0];
-    audioElement.controls = true;  // Ajouter des contrôles pour vérifier la lecture
+    audioElement.controls = true;  // Afficher les contrôles audio
 
-    // Vérifie les pistes audio
-    event.streams[0].getTracks().forEach((track, index) => {
-        console.log(`Piste ${index + 1} :`, track);
-        console.log(`État de la piste : ${track.readyState}`);
+    event.streams[0].getAudioTracks().forEach((track, index) => {
+        console.log(`Audio Track ${index + 1} - Enabled: ${track.enabled}, Muted: ${track.muted}, ReadyState: ${track.readyState}`);
     });
 
     const playButton = document.createElement("button");
@@ -99,8 +97,9 @@ socket.onmessage = async (message) => {
     };
 
     document.body.appendChild(playButton);
-    document.body.appendChild(audioElement); // Ajoute l'élément audio pour le flux
+    document.body.appendChild(audioElement);
 };
+
 
     peerConnection.createOffer().then((offer) => {
         peerConnection.setLocalDescription(offer);
