@@ -83,8 +83,14 @@ socket.onmessage = async (message) => {
 
     const audioElement = document.createElement("audio");
     audioElement.srcObject = event.streams[0];
+    audioElement.controls = true;  // Ajouter des contrôles pour vérifier la lecture
 
-    // Créer un bouton pour démarrer la lecture
+    // Vérifie les pistes audio
+    event.streams[0].getTracks().forEach((track, index) => {
+        console.log(`Piste ${index + 1} :`, track);
+        console.log(`État de la piste : ${track.readyState}`);
+    });
+
     const playButton = document.createElement("button");
     playButton.textContent = "Démarrer l'audio";
     playButton.onclick = () => {
