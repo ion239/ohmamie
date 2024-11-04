@@ -63,21 +63,32 @@ socket.onmessage = async (message) => {
         }
 
         function initializeWebRTC(stream) {
-            peerConnection = new RTCPeerConnection();
+    peerConnection = new RTCPeerConnection();
 
-            stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+    // Ajoute chaque piste audio du flux à la connexion WebRTC
+    stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
 
-            peerConnection.onicecandidate = (event) => {
-                if (event.candidate) {
-                    socket.send(JSON.stringify({ type: "candidate", candidate: event.candidate }));
-                }
-            };
-
-            peerConnection.createOffer().then((offer) => {
-                peerConnection.setLocalDescription(offer);
-                socket.send(JSON.stringify({ type: "offer", offer: offer }));
-            });
+    peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+            socket.send(JSON.stringify({ type: "candidate", candidate: event.candidate }));
         }
+    };
+
+    // Écouter l'arrivée des pistes sur le récepteur
+    peerConnection.ontrack = (event) => {
+        console.log("Piste reçue :", event.streams[0]);
+        const audioElement = document.createElement("audio");
+        audioElement.srcObject = event.streams[0];
+        audioElement.autoplay = true; // Démarrer automatiquement la lecture
+        document.body.appendChild(audioElement); // Ajouter l'audio à la page pour le jouer
+    };
+
+    peerConnection.createOffer().then((offer) => {
+        peerConnection.setLocalDescription(offer);
+        socket.send(JSON.stringify({ type: "offer", offer: offer }));
+    });
+}
+
 
         function createAnswer() {
             peerConnection.createAnswer().then((answer) => {
