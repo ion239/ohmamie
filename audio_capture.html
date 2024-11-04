@@ -51,16 +51,19 @@ socket.onmessage = async (message) => {
 };
 
 
-        async function startAudioCapture() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                document.getElementById("status").textContent = "Statut : Audio capturé et en cours de transmission.";
-                initializeWebRTC(stream);
-            } catch (err) {
-                console.error("Erreur lors de la capture audio :", err);
-                document.getElementById("status").textContent = "Erreur : Impossible de capturer l'audio.";
-            }
-        }
+     async function startAudioCapture() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        document.getElementById("status").textContent = "Statut : Audio capturé et en cours de transmission.";
+        console.log("Flux audio capturé :", stream);
+
+        initializeWebRTC(stream);
+    } catch (err) {
+        console.error("Erreur lors de la capture audio :", err);
+        document.getElementById("status").textContent = "Erreur : Impossible de capturer l'audio.";
+    }
+}
+
 
         function initializeWebRTC(stream) {
     peerConnection = new RTCPeerConnection();
@@ -76,13 +79,13 @@ socket.onmessage = async (message) => {
 
     // Écouter l'arrivée des pistes sur le récepteur
     peerConnection.ontrack = (event) => {
-        console.log("Piste reçue :", event.streams[0]);
-        const audioElement = document.createElement("audio");
-        audioElement.srcObject = event.streams[0];
-        audioElement.autoplay = true; // Démarrer automatiquement la lecture
-        document.body.appendChild(audioElement); // Ajouter l'audio à la page pour le jouer
-    };
+    console.log("Piste reçue :", event.streams[0]);
 
+    const audioElement = document.createElement("audio");
+    audioElement.srcObject = event.streams[0];
+    audioElement.autoplay = true;
+    document.body.appendChild(audioElement);
+};
     peerConnection.createOffer().then((offer) => {
         peerConnection.setLocalDescription(offer);
         socket.send(JSON.stringify({ type: "offer", offer: offer }));
