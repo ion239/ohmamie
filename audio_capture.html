@@ -86,15 +86,20 @@
 
                 event.streams[0].getAudioTracks().forEach((track, index) => {
                     track.enabled = true;
+                    track.muted = false; // Forcer la piste à ne pas être muette
                     console.log(`Audio Track ${index + 1} - Enabled: ${track.enabled}, Muted: ${track.muted}, ReadyState: ${track.readyState}`);
                 });
 
                 const playButton = document.createElement("button");
-                playButton.textContent = "Démarrer l'audio";
+                playButton.textContent = "Activer l'audio";
                 playButton.onclick = () => {
-                    audioElement.muted = false;  // Forcer l'élément audio à ne pas être muet
+                    event.streams[0].getAudioTracks().forEach(track => {
+                        track.muted = false;  // Tente de désactiver le muet sur la piste
+                        track.enabled = true;
+                    });
+                    audioElement.muted = false;
                     audioElement.play(); // Démarrer la lecture
-                    console.log("Lecture audio démarrée");
+                    console.log("Lecture audio démarrée et muet désactivé");
                 };
 
                 document.body.appendChild(playButton);
